@@ -1,0 +1,5 @@
+<launch>
+	<rosparam command="load" file="$(find Stat_Color)/config/record.yaml" />
+    <param name="path" value="$(find Stat_Color)" />
+    <node name="detection" pkg="Stat_Color" type="stat_color_detect" output="screen" />
+</launch>
