@@ -1,2 +1,3 @@
-# Stat_Color
-Statistical Color Analysis for ROS 
+# stat_Color
+ROS package for statistical color analysis
+

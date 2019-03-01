@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "ros/ros.h"
 #include <cv_bridge/cv_bridge.h>
-#include <color_shape_detection/color_shape_detection.h>
+#include <stat_color/stat_color.h>
 #include <ros/package.h>
 
 using namespace cv;

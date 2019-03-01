@@ -1,0 +1,14 @@
+#This stores all information about what colors there are and how many samples exist saved
+#first should be the name of what the object is which also serves as the file name in the data folder
+#second should be the number of sample images there are in that folder which need to be named 0-xx
+display: 1
+num_colors: 4  #Number of defined colors
+file_type: ".png"
+color_0: 'red'
+num_0: 31
+color_1: 'green'
+num_1: 27
+color_2: 'blue' 
+num_2: 27
+color_3: 'black'
+num_3: 20

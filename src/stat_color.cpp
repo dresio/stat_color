@@ -3,19 +3,14 @@
 #include <stdlib.h>
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
-#include <color_shape_detection/color_shape_detection.h>
+#include <stat_color/stat_color.h>
 #include <string>
 #include <std_msgs/String.h>
 #include <image_transport/image_transport.h>
 
-# define M_PI 3.14159265358979323846  /* pi */
-
 using namespace cv;
 using namespace std;
 
-float contrast_value = 1.5;
-float brightness_value = -10;
-int white_threshold = 40;
 std::string pack_path;
 int bin_size =256;
 
@@ -26,9 +21,9 @@ vector<Mat> black;
 
 
 //generates a histogram for color
-void findColor(const Mat image, const Mat mask, vector<Point> contours, vector<Mat> &conf)
+void findHist(const Mat image, const Mat mask, vector<Point> contours, vector<Mat> &conf)
 {
-    Rect _boundingRect = boundingRect( contours );
+    Rect boundingRect = boundingRect( contours );
 	
 	Mat mask_bin;
 	//converts to binary (theshold didn't work)
@@ -36,7 +31,7 @@ void findColor(const Mat image, const Mat mask, vector<Point> contours, vector<M
 	
 	// Seperate BGR
 	vector<Mat> bgr;
-	split( image(_boundingRect), bgr );
+	split( image(boundingRect), bgr );
 
 	int histSize = bin_size;
 
@@ -48,9 +43,9 @@ void findColor(const Mat image, const Mat mask, vector<Point> contours, vector<M
 
 	Mat b_hist, g_hist, r_hist;
 
-	calcHist( &bgr[0], 1, 0, mask_bin(_boundingRect), b_hist, 1, &histSize, &histRange, uniform, accumulate );
-  	calcHist( &bgr[1], 1, 0, mask_bin(_boundingRect), g_hist, 1, &histSize, &histRange, uniform, accumulate );
-  	calcHist( &bgr[2], 1, 0, mask_bin(_boundingRect), r_hist, 1, &histSize, &histRange, uniform, accumulate );
+	calcHist( &bgr[0], 1, 0, mask_bin(boundingRect), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+  	calcHist( &bgr[1], 1, 0, mask_bin(boundingRect), g_hist, 1, &histSize, &histRange, uniform, accumulate );
+  	calcHist( &bgr[2], 1, 0, mask_bin(boundingRect), r_hist, 1, &histSize, &histRange, uniform, accumulate );
 
 	// Draw the histograms for B, G and R
 	int hist_w = 512; int hist_h = 500;
@@ -147,30 +142,30 @@ Mat getDisplayMat(vector<Mat> hist)
 
 }
 
-//grab data from config images
+//grab data from config histograms
 void loadHists()
 {
-	Mat red_b, red_g, red_r;
-	string path = pack_path + "/config/images/";
-	cv::FileStorage file(path + "red_b.hist", cv::FileStorage::READ);
-	file[""] >> red_b;
-	red.push_back(red_b);
-	file = cv::FileStorage(path + "red_g.hist", cv::FileStorage::READ);
-	file[""] >> red_g;
-	red.push_back(red_g);
-	file = cv::FileStorage(path + "red_r.hist", cv::FileStorage::READ);
-	file[""] >> red_r;
-	red.push_back(red_r);
-	Mat green_b, green_g, green_r;
-	file = cv::FileStorage(path + "green_b.hist", cv::FileStorage::READ);
-	file[""] >> green_b;
-	green.push_back(green_b);
-	file = cv::FileStorage(path + "green_g.hist", cv::FileStorage::READ);
-	file[""] >> green_g;
-	green.push_back(green_g);
-	file = cv::FileStorage(path + "green_r.hist", cv::FileStorage::READ);
-	file[""] >> green_r;
-	green.push_back(green_r);
+	Mat red_h, red_s, red_v;
+	string path = pack_path + "/config/hists/";
+	cv::FileStorage file(path + "red_h.hist", cv::FileStorage::READ);
+	file[""] >> red_h;
+	red.push_back(red_h);
+	file = cv::FileStorage(path + "red_s.hist", cv::FileStorage::READ);
+	file[""] >> red_s;
+	red.push_back(red_s);
+	file = cv::FileStorage(path + "red_v.hist", cv::FileStorage::READ);
+	file[""] >> red_v;
+	red.push_back(red_v);
+	Mat green_h, green_s, green_v;
+	file = cv::FileStorage(path + "green_h.hist", cv::FileStorage::READ);
+	file[""] >> green_h;
+	green.push_back(green_h);
+	file = cv::FileStorage(path + "green_s.hist", cv::FileStorage::READ);
+	file[""] >> green_s;
+	green.push_back(green_s);
+	file = cv::FileStorage(path + "green_v.hist", cv::FileStorage::READ);
+	file[""] >> green_v;
+	green.push_back(green_v);
 	Mat blue_b, blue_g, blue_r;
 	file = cv::FileStorage(path + "blue_b.hist", cv::FileStorage::READ);
 	file[""] >> blue_b;
@@ -194,8 +189,8 @@ void loadHists()
 }
 
 //finds shape and colors for docking
-bool findColor(color_shape_detection::color_shape_detection::Request  &req,
-	 color_shape_detection::color_shape_detection::Response &res)
+bool findColor(stat_color::stat_color::Request  &req,
+	 stat_color::stat_color::Response &res)
 {
 	Mat img;
 	vector<Mat> compare;
@@ -273,22 +268,18 @@ bool findColor(color_shape_detection::color_shape_detection::Request  &req,
 	//redo this later to remove conf variable
 	if(conf[0] > conf[1] && conf[0] > conf[2])	
 	{
-		//res.color = color_shape_detection::color_shape_detection::BLUE;
 		res.color = 0;
 	}
 	else if(conf[1] > conf[0] && conf[1] > conf[2])
 	{
-		//res.color = color_shape_detection::color_shape_detection::GREEN;
 		res.color = 1;
 	}
 	else if(conf[2] > conf[0] && conf[2] > conf[1])
 	{
-		//res.color = color_shape_detection::color_shape_detection::RED;
 		res.color = 2;
 	}
 	else if(conf[3] > conf[0] && conf[3] > conf[1] && conf[3] > conf[2])
 	{
-		//res.color = color_shape_detection::color_shape_detection::BLACK;
 		res.color = 3;
 	}
 	else{
@@ -305,14 +296,14 @@ bool findColor(color_shape_detection::color_shape_detection::Request  &req,
 int main(int argc, char **argv)
 {
 
-	ros::init(argc, argv, "color_shape_detection_service");
+	ros::init(argc, argv, "color_detection_service");
 	ros::NodeHandle nh;
 
 	nh.param("/path", pack_path, pack_path);
 
 	loadHists();
 
-	ros::ServiceServer service = nh.advertiseService("color_shape_detection", findColor);
+	ros::ServiceServer service = nh.advertiseService("color_detection", findColor);
 	ROS_INFO("Send image and will return the shape and color of the object");
 
 	ros::spin();
